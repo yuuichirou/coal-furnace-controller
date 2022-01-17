@@ -106,7 +106,8 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 enum motor_state {
     MOS_STOPPED,
     MOS_RUNNING_FORWARD,
-    MOS_RUNNING_BACKWARD
+    MOS_RUNNING_BACKWARD,
+    MOS_NOT_ACTIVE
 };
 
 enum pump_state {
@@ -252,6 +253,25 @@ void loop() {
             break;
         default:
             break;
+    }
+    // if temperature drops below the threshold(the fire goes out), there
+    // is no point in starting the motor
+    t_max = 1440;
+    for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
+        t_max = t_max > temperatures[i] ? t_max : temperatures[i];
+    }
+    if (t_max < pump_stop_temperature) {
+        motor_current_state = MOS_NOT_ACTIVE;
+    }
+    // but if the temperature rises above the threshold (relighting of
+    // the furnace) we resume operation
+    if (t_max > pump_start_temperature) {
+        if (motor_current_state == MOS_NOT_ACTIVE) {
+            // don't start immediately after detecting a change
+            // in temperature (it may have been a long time since
+            // the motor was last stopped)          
+            motor_current_state = MOS_STOPPED;
+        }
     }
 
 /*******************************************************************************
