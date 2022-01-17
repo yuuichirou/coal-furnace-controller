@@ -338,11 +338,11 @@ void motor_control(enum motor_command command)
 }
 
 boolean time_to_run_has_already_passed(time_t time) {
-    integer temperature = 0;
+    int temperature = 0;
     byte i;
 
     for(i = 0; i < SENSOR_NUMBER; i++)
-        temperature = temparature > temperatures[i] ? temparature : temperatures[i];
+        temperature = temperature > temperatures[i] ? temperature : temperatures[i];
     if (temperature < temperature_to_half_time) {
         return (time - motor_start_time) >= (time_to_run/2);
     }
