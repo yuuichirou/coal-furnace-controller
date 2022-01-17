@@ -75,6 +75,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
  ******************************************************************************/
 #define DEF_TIME_TO_RUN     1800  // 30 minutes
 #define DEF_TIME_TO_STOP    30    // 30 seconds
+#define DEF_TEMP_TO_HALF    608   // 38 °C
 
 /*******************************************************************************
  *                                                                             *
@@ -131,6 +132,8 @@ time_t              time_to_run = DEF_TIME_TO_RUN;
 // time of activation / time to switch off the wiper motor
 time_t              time_to_stop = DEF_TIME_TO_STOP;
 enum motor_state    motor_current_state;
+// temperature below which we reduce the waiting time for motor activation
+int                 temperature_to_half_time = DEF_TEMP_TO_HALF;
 
 /*******************************************************************************
  *                                                                             *
@@ -270,9 +273,18 @@ void motor_control(enum motor_command command)
     }
 }
 
-boolean time_to_run_has_already_passed(time_t time)
-{
-    return (time - motor_start_time) >= time_to_run;
+boolean time_to_run_has_already_passed(time_t time) {
+    integer temperature = 0;
+    byte i;
+
+    for(i = 0; i < SENSOR_NUMBER; i++)
+        temperature = temparature > temperatures[i] ? temparature : temperatures[i];
+    if (temperature < temperature_to_half_time) {
+        return (time - motor_start_time) >= (time_to_run/2);
+    }
+    else {
+        return (time - motor_start_time) >= time_to_run;
+    }
 }
 
 boolean time_to_stop_has_already_passed(time_t time)
