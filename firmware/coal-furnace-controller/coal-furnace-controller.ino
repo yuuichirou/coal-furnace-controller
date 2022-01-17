@@ -66,6 +66,8 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 #define MOTOR_CON1          RELAY1_PIN
 #define MOTOR_CON2          RELAY4_PIN
 
+#define PUMP_CON            RELAY2_PIN
+
 #define ONE_WIRE_BUS_PIN    13
 
 /*******************************************************************************
@@ -76,6 +78,8 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 #define DEF_TIME_TO_RUN     1800  // 30 minutes
 #define DEF_TIME_TO_STOP    30    // 30 seconds
 #define DEF_TEMP_TO_HALF    608   // 38 °C
+#define DEF_TEMP_TO_START_PUMP  640     // 40 °C
+#define DEF_TEMP_TO_STOP_PUMP   480     // 30 °C
 
 /*******************************************************************************
  *                                                                             *
@@ -104,6 +108,11 @@ enum motor_state {
     MOS_RUNNING_FORWARD,
     MOS_RUNNING_BACKWARD
 };
+
+enum pump_state {
+    PUS_STOPPED,
+    PUS_RUNNING
+    };
 
 enum motor_command {
     FORWARD,
@@ -137,6 +146,15 @@ int                 temperature_to_half_time = DEF_TEMP_TO_HALF;
 
 /*******************************************************************************
  *                                                                             *
+ * Pump control                                                                *
+ *                                                                             *
+ ******************************************************************************/
+int                 pump_start_temperature = DEF_TEMP_TO_START_PUMP;
+int                 pump_stop_temperature  = DEF_TEMP_TO_STOP_PUMP;
+enum pump_state     pump_current_state;
+
+/*******************************************************************************
+ *                                                                             *
  * Temperature sensors                                                         *
  *                                                                             *
  ******************************************************************************/
@@ -159,8 +177,10 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution);
  ******************************************************************************/
 void setup() {
     motor_init();
+    pump_init();
 
     motor_current_state = MOS_STOPPED;
+    pump_current_state  = PUS_STOPPED;
     measuring_current_state = MES_IDLE;
 
     count_one_wire_devices();
@@ -173,6 +193,8 @@ void setup() {
 }
 
 void loop() {
+    int t_min, t_max;
+
     time_now = now();  // resolution in seconds
     time_now_ms = millis();
 
@@ -231,6 +253,28 @@ void loop() {
         default:
             break;
     }
+
+/*******************************************************************************
+ *                                                                             *
+ * Pump control                                                                *
+ *                                                                             *
+ ******************************************************************************/
+    t_min = 0; t_max = 1440;
+    for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
+        t_max = t_max > temperatures[i] ? t_max : temperatures[i];
+        t_min = t_min < temperatures[i] ? t_min : temperatures[i];
+    }
+    // if temperature drops below the threshold(the fire goes out), there
+    // is no point in starting the motor
+    if (t_max < pump_stop_temperature) {
+        pump_stop();
+    }
+    // but if the temperature rises above the threshold (relighting of
+    // the furnace) we resume operation
+    if (t_min > pump_start_temperature) {
+        pump_start();
+    }
+
     delay(50);
 }
 
@@ -290,6 +334,26 @@ boolean time_to_run_has_already_passed(time_t time) {
 boolean time_to_stop_has_already_passed(time_t time)
 {
     return (time - motor_start_time) >= time_to_stop;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * Pump control functions                                                      *
+ *                                                                             *
+ ******************************************************************************/
+void pump_init(void) {
+    pinMode(PUMP_CON, OUTPUT);
+    digitalWrite(PUMP_CON, HIGH);
+}
+
+void pump_start(void) {
+    digitalWrite(PUMP_CON, LOW);
+    pump_current_state = PUS_RUNNING;
+}
+
+void pump_stop(void) {
+    digitalWrite(PUMP_CON, HIGH);
+    pump_current_state = PUS_STOPPED;
 }
 
 /*******************************************************************************
