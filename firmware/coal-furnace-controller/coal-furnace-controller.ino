@@ -194,7 +194,7 @@ void setup() {
 }
 
 void loop() {
-    int t_min, t_max;
+    int t_max;
 
     time_now = now();  // resolution in seconds
     time_now_ms = millis();
@@ -256,7 +256,7 @@ void loop() {
     }
     // if temperature drops below the threshold(the fire goes out), there
     // is no point in starting the motor
-    t_max = 1440;
+    t_max = 0;
     for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
         t_max = t_max > temperatures[i] ? t_max : temperatures[i];
     }
@@ -279,10 +279,9 @@ void loop() {
  * Pump control                                                                *
  *                                                                             *
  ******************************************************************************/
-    t_min = 0; t_max = 1440;
+    t_max = 0;
     for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
         t_max = t_max > temperatures[i] ? t_max : temperatures[i];
-        t_min = t_min < temperatures[i] ? t_min : temperatures[i];
     }
     // if temperature drops below the threshold(the fire goes out), there
     // is no point in starting the motor
@@ -291,7 +290,7 @@ void loop() {
     }
     // but if the temperature rises above the threshold (relighting of
     // the furnace) we resume operation
-    if (t_min > pump_start_temperature) {
+    if (t_max > pump_start_temperature) {
         pump_start();
     }
 
