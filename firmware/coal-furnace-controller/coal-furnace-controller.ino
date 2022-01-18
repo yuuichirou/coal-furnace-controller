@@ -188,7 +188,7 @@ void setup() {
     if (one_wire_devices_count > 0) {
         scan_one_wire_bus(&sensor_addresses[0], SENSOR_NUMBER);
         set_resolution(&sensor_addresses[0],
-          SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER,
+          min(SENSOR_NUMBER, one_wire_devices_count),
           SENSOR_RESOLUTION);
     }
 }
@@ -216,7 +216,7 @@ void loop() {
                 break;
             case MES_READY:
                 read_temperatures(temperatures,
-                  SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER);
+                  min(SENSOR_NUMBER, one_wire_devices_count));
                 break;
             default:
                 break;
@@ -257,8 +257,8 @@ void loop() {
     // if temperature drops below the threshold(the fire goes out), there
     // is no point in starting the motor
     t_max = 0;
-    for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
-        t_max = t_max > temperatures[i] ? t_max : temperatures[i];
+    for(byte i = 0; i < (min(SENSOR_NUMBER, one_wire_devices_count)); i++) {
+        t_max = max(t_max, temperatures[i]);
     }
     if (t_max < pump_stop_temperature) {
         motor_current_state = MOS_NOT_ACTIVE;
@@ -280,8 +280,8 @@ void loop() {
  *                                                                             *
  ******************************************************************************/
     t_max = 0;
-    for(byte i = 0; i < (SENSOR_NUMBER > one_wire_devices_count ? one_wire_devices_count : SENSOR_NUMBER); i++) {
-        t_max = t_max > temperatures[i] ? t_max : temperatures[i];
+    for(byte i = 0; i < (min(SENSOR_NUMBER, one_wire_devices_count)); i++) {
+        t_max = max(t_max, temperatures[i]);
     }
     // if temperature drops below the threshold(the fire goes out), there
     // is no point in starting the motor
@@ -341,7 +341,7 @@ boolean time_to_run_has_already_passed(time_t time) {
     byte i;
 
     for(i = 0; i < SENSOR_NUMBER; i++)
-        temperature = temperature > temperatures[i] ? temperature : temperatures[i];
+        temperature = max(temperature, temperatures[i]);
     if (temperature < temperature_to_half_time) {
         return (time - motor_start_time) >= (time_to_run/2);
     }
