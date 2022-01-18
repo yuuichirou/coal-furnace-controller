@@ -1,6 +1,6 @@
 /*
  Controller for ash removal from coal furnace and central heating pump
- version 0.1
+ version 0.2
 
  Building blocks:
  - AVT5272 Arduino Duemilanove clone
