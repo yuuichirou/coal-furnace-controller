@@ -8,7 +8,7 @@
 
  Required libraries:
  - OneWire 2.3.6 https://www.arduino.cc/reference/en/libraries/onewire/
- * - Time 1.6.1 https://www.arduino.cc/reference/en/libraries/time/
+ - Time 1.6.1 https://www.arduino.cc/reference/en/libraries/time/
 
 
                                           +-----+
@@ -76,9 +76,9 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
  * Default values                                                              *
  *                                                                             *
  ******************************************************************************/
-#define DEF_TIME_TO_RUN     1800  // 30 minutes
-#define DEF_TIME_TO_STOP    30    // 30 seconds
-#define DEF_TEMP_TO_HALF    608   // 38 °C
+#define DEF_TIME_TO_RUN         1800    // 30 minutes
+#define DEF_TIME_TO_STOP        30      // 30 seconds
+#define DEF_TEMP_TO_HALF        608     // 38 °C
 #define DEF_TEMP_TO_START_PUMP  640     // 40 °C
 #define DEF_TEMP_TO_STOP_PUMP   480     // 30 °C
 
@@ -98,10 +98,10 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
  * Dallas OneWire                                                              *
  *                                                                             *
  ******************************************************************************/
-#define CONVERT_INTERVAL_12BIT  750  // for 12 bit resolution (0.0625)
-#define CONVERT_INTERVAL_11BIT  375  // for 11 bit resolution (0.125)
-#define CONVERT_INTERVAL_10BIT  188  // for 10 bit resolution (0.250)
-#define CONVERT_INTERVAL_9BIT    94  // for  9 bit resolution (0.5)
+#define CONVERT_INTERVAL_12BIT  750     // for 12 bit resolution (0.0625)
+#define CONVERT_INTERVAL_11BIT  375     // for 11 bit resolution (0.125)
+#define CONVERT_INTERVAL_10BIT  188     // for 10 bit resolution (0.250)
+#define CONVERT_INTERVAL_9BIT    94     // for  9 bit resolution (0.5)
 
 
 enum motor_state {
@@ -189,8 +189,7 @@ void setup() {
     if (one_wire_devices_count > 0) {
         scan_one_wire_bus(&sensor_addresses[0], SENSOR_NUMBER);
         set_resolution(&sensor_addresses[0],
-          min(SENSOR_NUMBER, one_wire_devices_count),
-          SENSOR_RESOLUTION);
+            min(SENSOR_NUMBER, one_wire_devices_count), SENSOR_RESOLUTION);
     }
     wdt_enable(WDTO_2S);
 }
@@ -233,23 +232,19 @@ void loop() {
  * Motor control                                                               *
  *                                                                             *
  ******************************************************************************/
-    switch (motor_current_state)
-    {
+    switch (motor_current_state) {
         case MOS_STOPPED:
-            if (time_to_run_has_already_passed(time_now))
-            {
+            if (time_to_run_has_already_passed(time_now)) {
                 motor_control(FORWARD);
             }
             break;
         case MOS_RUNNING_FORWARD:
-            if (time_to_stop_has_already_passed(time_now))
-            {
+            if (time_to_stop_has_already_passed(time_now)) {
                 motor_control(STOP);
             }
             break;
         case MOS_RUNNING_BACKWARD:
-            if (time_to_stop_has_already_passed(now()))
-            {
+            if (time_to_stop_has_already_passed(now())) {
                 motor_control(STOP);
             }
             break;
@@ -271,7 +266,7 @@ void loop() {
         if (motor_current_state == MOS_NOT_ACTIVE) {
             // don't start immediately after detecting a change
             // in temperature (it may have been a long time since
-            // the motor was last stopped)          
+            // the motor was last stopped)
             motor_current_state = MOS_STOPPED;
         }
     }
@@ -305,18 +300,15 @@ void loop() {
  * Motor control functions                                                     *
  *                                                                             *
  ******************************************************************************/
-void motor_init(void)
-{
+void motor_init(void) {
     pinMode(MOTOR_CON1, OUTPUT);
     digitalWrite(MOTOR_CON1, HIGH);
     pinMode(MOTOR_CON2, OUTPUT);
     digitalWrite(MOTOR_CON2, HIGH);
 }
 
-void motor_control(enum motor_command command)
-{
-    switch(command)
-    {
+void motor_control(enum motor_command command) {
+    switch(command) {
     case FORWARD:
         digitalWrite(MOTOR_CON1, HIGH);
         digitalWrite(MOTOR_CON2, LOW);
@@ -353,8 +345,7 @@ boolean time_to_run_has_already_passed(time_t time) {
     }
 }
 
-boolean time_to_stop_has_already_passed(time_t time)
-{
+boolean time_to_stop_has_already_passed(time_t time) {
     return (time - motor_start_time) >= time_to_stop;
 }
 
@@ -384,11 +375,10 @@ void pump_stop(void) {
  *                                                                             *
  ******************************************************************************/
 byte count_one_wire_devices(void) {
-    byte    i = 0;
-    byte    dummy[8];
+    byte dummy[8];
+    byte i = 0;
 
     one_wire_bus.reset_search();
-
     while (one_wire_bus.search(dummy)) {
         i++;
     }
@@ -398,8 +388,8 @@ byte count_one_wire_devices(void) {
 }
 
 byte scan_one_wire_bus(byte (*addresses)[8], byte array_size) {
-    byte    i = 0;
-    byte    dummy[8];
+    byte dummy[8];
+    byte i = 0;
 
     one_wire_bus.reset_search();
     while (one_wire_bus.search(dummy)) {
@@ -432,7 +422,7 @@ void read_temperatures(int *temperatures, byte array_size) {
         for (j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
         }
-        temperatures[i] = (scrachpad[1] << 8) | scrachpad[0];      
+        temperatures[i] = (scrachpad[1] << 8) | scrachpad[0];
     }
     measuring_current_state = MES_IDLE;
 }
