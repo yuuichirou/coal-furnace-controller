@@ -5,6 +5,7 @@
  Building blocks:
  - AVT5272 Arduino Duemilanove clone
  - AVT1666 Relay Board
+ - AVT1722 miniature operator panel for Arduino
 
  Required libraries:
  - OneWire 2.3.6 https://www.arduino.cc/reference/en/libraries/onewire/
@@ -12,28 +13,28 @@
 
 
                                           +-----+
-             +----[PWR]-------------------| USB |--+    AVT
-             |                            +-----+  |    1666
+             +----[PWR]-------------------| USB |--+    AVT  AVT
+             |                            +-----+  |    1666 1722
              |         GND/RST2  [ ][ ]            |
              |       MOSI2/SCK2  [ ][ ]  A5/SCL[ ] | C5 PK2
-             |          5V/MISO2 [ ][ ]  A4/SDA[ ] | C4 PK1
+             |          5V/MISO2 [ ][ ]  A4/SDA[ ] | C4 PK1  S4
              |                             AREF[ ] |
              |                              GND[ ] |
-             | [ ]N/C                    SCK/13[ ] | B5
-             | [ ]IOREF                 MISO/12[ ] | .
-             | [ ]RST                   MOSI/11[ ]~| .
-             | [ ]3V3    +---+               10[ ]~| .
-             | [ ]5v    -| A |-               9[ ]~| .
-             | [ ]GND   -| R |-               8[ ] | B0
-AVT          | [ ]GND   -| D |-                    |
-1666         | [ ]Vin   -| U |-               7[ ] | D7
-             |          -| I |-               6[ ]~| .
-          C0 | [ ]A0    -| N |-               5[ ]~| .
-          .  | [ ]A1    -| O |-               4[ ] | .
-PK3       .  | [ ]A2     +---+           INT1/3[ ]~| .
-PK4       .  | [ ]A3                     INT0/2[ ] | .
-PK1       .  | [ ]A4/SDA  RST SCK MISO     TX>1[ ] | .
-PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
+             | [ ]N/C                    SCK/13[ ] | B5      DS18B20
+             | [ ]IOREF                 MISO/12[ ] | .       LED B
+             | [ ]RST                   MOSI/11[ ]~| .       LED G
+             | [ ]3V3    +---+               10[ ]~| .       LED R
+             | [ ]5v    -| A |-               9[ ]~| .       LCD EN
+             | [ ]GND   -| R |-               8[ ] | B0      LCD RS
+AVT  AVT     | [ ]GND   -| D |-                    |
+1666 1722    | [ ]Vin   -| U |-               7[ ] | D7      LCD DB7
+             |          -| I |-               6[ ]~| .       LCD DB6
+     PK1  C0 | [ ]A0    -| N |-               5[ ]~| .       LCD DB5
+     S1   .  | [ ]A1    -| O |-               4[ ] | .       LCD DB4
+PK3  S2   .  | [ ]A2     +---+           INT1/3[ ]~| .
+PK4  S3   .  | [ ]A3                     INT0/2[ ] | .       ENC
+PK1  S4   .  | [ ]A4/SDA  RST SCK MISO     TX>1[ ] | .       ENC
+PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
              |            [ ] [ ] [ ]              |
              |  UNO_R3    GND MOSI 5V  ____________/
               \_______________________/
@@ -69,8 +70,6 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 
 #define PUMP_CON            RELAY2_PIN
 
-#define ONE_WIRE_BUS_PIN    13
-
 /*******************************************************************************
  *                                                                             *
  * Default values                                                              *
@@ -92,6 +91,48 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 #define RELAY2_PIN          A5
 #define RELAY3_PIN          A2
 #define RELAY4_PIN          A3
+
+// conflict with switch S2 on AVT1722 board
+#undef RELAY3_PIN
+
+/*******************************************************************************
+ *                                                                             *
+ * AVT1722 board "AVTduino miniLCD"                                            *
+ * 2x8 LCD, encoder switch, 4 push buttons, double relay, RGB LED,             *
+ * OneWire connection                                                          *
+ *                                                                             *
+ ******************************************************************************/
+// LCD display pins
+#define LCD_RS              8
+#define LCD_EN              9
+#define LCD_D4              4
+#define LCD_D5              5
+#define LCD_D6              6
+#define LCD_D7              7
+// Double output relay
+//#define RELAY_PIN           A0          // not connected
+// One Wire connector
+#define ONE_WIRE_BUS_PIN    13
+// Encoder pins
+#define ENC_A               1
+#define ENC_B               2
+#define ENC_BUTTON          0
+// Switches
+#define S1                  A1
+#define S2                  A2
+#define S3                  A3          // pull-up resistor not soldered
+#define S4                  A4          // pull-up resistor not soldered
+// Leds
+#define LEDG                10
+#define LEDR                11
+#define LEDB                12
+#define GREEN_LED           LEDG
+#define RED_LED             LEDR
+#define BLUE_LED            LEDB
+
+// conflict with AVT1666 board
+#undef S3
+#undef S4
 
 /*******************************************************************************
  *                                                                             *
