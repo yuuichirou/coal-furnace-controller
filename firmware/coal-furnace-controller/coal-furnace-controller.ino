@@ -43,6 +43,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 
 // Arduino Standard Libraries
 // AVR Standard C Libraries
+#include <avr/wdt.h>
 // Other Libraries
 #include <OneWire.h>
 #include <TimeLib.h>
@@ -191,6 +192,7 @@ void setup() {
           min(SENSOR_NUMBER, one_wire_devices_count),
           SENSOR_RESOLUTION);
     }
+    wdt_enable(WDTO_2S);
 }
 
 void loop() {
@@ -294,6 +296,7 @@ void loop() {
         pump_start();
     }
 
+    wdt_reset();
     delay(50);
 }
 
