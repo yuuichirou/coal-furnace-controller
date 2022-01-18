@@ -102,6 +102,9 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0
 #define CONVERT_INTERVAL_11BIT  375     // for 11 bit resolution (0.125)
 #define CONVERT_INTERVAL_10BIT  188     // for 10 bit resolution (0.250)
 #define CONVERT_INTERVAL_9BIT    94     // for  9 bit resolution (0.5)
+#define OW_CONVERT_T            0x44
+#define OW_READ_SCRATCHPAD      0xBE
+#define OW_WRITE_SCRATCHPAD     0x4E
 
 
 enum motor_state {
@@ -406,7 +409,7 @@ byte scan_one_wire_bus(byte (*addresses)[8], byte array_size) {
 void measure_temperatures (void) {
     one_wire_bus.reset();
     one_wire_bus.skip();
-    one_wire_bus.write(0x44);
+    one_wire_bus.write(OW_CONVERT_T);
     measure_start_time = millis();
     measuring_current_state = MES_CONVERTING_BUSY;
 }
@@ -418,7 +421,7 @@ void read_temperatures(int *temperatures, byte array_size) {
     for (i = 0; i < array_size; i++) {
         one_wire_bus.reset();
         one_wire_bus.select(sensor_addresses[i]);
-        one_wire_bus.write(0xBE);
+        one_wire_bus.write(OW_READ_SCRATCHPAD);
         for (j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
         }
@@ -434,7 +437,7 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
     for (i = 0; i < array_size; i++) {
         one_wire_bus.reset();
         one_wire_bus.select(addresses[i]);
-        one_wire_bus.write(0xBE);
+        one_wire_bus.write(OW_READ_SCRATCHPAD);
         for (j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
         }
@@ -444,7 +447,7 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
         if (resolution == 12) scrachpad[4] = 0x7F;  // & 0xFF | 0x60
         one_wire_bus.reset();
         one_wire_bus.select(addresses[i]);
-        one_wire_bus.write(0x4E);
+        one_wire_bus.write(OW_WRITE_SCRATCHPAD);
         one_wire_bus.write_bytes(&scrachpad[2], 3);
     }
     one_wire_bus.reset(); 
