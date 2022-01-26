@@ -8,6 +8,7 @@
  - AVT1722 miniature operator panel for Arduino
 
  Required libraries:
+ - LiquidCrystal 1.0.7 https://www.arduino.cc/en/Reference/LiquidCrystal
  - OneWire 2.3.6 https://www.arduino.cc/reference/en/libraries/onewire/
  - Time 1.6.1 https://www.arduino.cc/reference/en/libraries/time/
 
@@ -43,6 +44,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 */
 
 // Arduino Standard Libraries
+#include <LiquidCrystal.h>
 // AVR Standard C Libraries
 #include <avr/wdt.h>
 // Other Libraries
@@ -174,6 +176,7 @@ enum measuring_state {
 
 time_t              time_now;
 unsigned long       time_now_ms;
+LiquidCrystal       lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 /*******************************************************************************
  *                                                                             *
@@ -224,6 +227,11 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution);
 void setup() {
     motor_init();
     pump_init();
+    lcd.begin(8, 2);
+    lcd.setCursor(0,0);
+    lcd.print("Sterownik");
+    lcd.setCursor(0,1);
+    lcd.print("v0.2");
 
     motor_current_state = MOS_STOPPED;
     pump_current_state  = PUS_STOPPED;
@@ -235,6 +243,7 @@ void setup() {
         set_resolution(&sensor_addresses[0],
             min(SENSOR_NUMBER, one_wire_devices_count), SENSOR_RESOLUTION);
     }
+    delay(1000);
     wdt_enable(WDTO_2S);
 }
 
