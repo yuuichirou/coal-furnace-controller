@@ -174,9 +174,37 @@ enum measuring_state {
     MES_READY
 };
 
+/*******************************************************************************
+ *                                                                             *
+ * Display menu definition                                                     *
+ *                                                                             *
+ ******************************************************************************/
+enum menu_state {
+    m_main_menu_first_pos,
+    m_time_to_run,                      // time left till start the motor
+    m_time_to_stop,                     // time left till stop the motor
+    m_temperature,                      // temperatures display
+    m_motor_state,                      // state of the motor, on/off
+    m_pump_state,                       // central heating pump status, on/off
+    m_settings,                         // open the settings menu
+    m_main_menu_last_pos
+};
+
+
 time_t              time_now;
 unsigned long       time_now_ms;
 LiquidCrystal       lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+int                 main_menu_position;
+char                *menu_titles[] = {
+    NULL,
+    "start za",
+    "stop za",
+    NULL,
+    "silnik",
+    "pompa",
+    "ustawienia",
+    NULL
+};
 
 /*******************************************************************************
  *                                                                             *
@@ -236,6 +264,8 @@ void setup() {
     motor_current_state = MOS_STOPPED;
     pump_current_state  = PUS_STOPPED;
     measuring_current_state = MES_IDLE;
+
+    main_menu_position = m_time_to_run;
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -342,6 +372,29 @@ void loop() {
     // the furnace) we resume operation
     if (t_max > pump_start_temperature) {
         pump_start();
+    }
+
+/*******************************************************************************
+ *                                                                             *
+ * Display menu                                                                *
+ *                                                                             *
+ ******************************************************************************/
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(menu_titles[main_menu_position]);
+    switch (main_menu_position) {
+        case m_time_to_run:
+            break;
+        case m_time_to_stop:
+            break;
+        case m_temperature:
+            break;
+        case m_motor_state:
+            break;
+        case m_pump_state:
+            break;
+        default:
+            break;
     }
 
     wdt_reset();
