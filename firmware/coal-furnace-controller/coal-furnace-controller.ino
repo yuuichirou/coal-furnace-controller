@@ -8,6 +8,7 @@
  - AVT1722 miniature operator panel for Arduino
 
  Required libraries:
+ - Encoder 1.4.2 https://www.arduino.cc/reference/en/libraries/encoder
  - LiquidCrystal 1.0.7 https://www.arduino.cc/en/Reference/LiquidCrystal
  - OneWire 2.3.6 https://www.arduino.cc/reference/en/libraries/onewire/
  - Time 1.6.1 https://www.arduino.cc/reference/en/libraries/time/
@@ -48,6 +49,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 // AVR Standard C Libraries
 #include <avr/wdt.h>
 // Other Libraries
+#include <Encoder.h>
 #include <OneWire.h>
 #include <TimeLib.h>
 
@@ -174,6 +176,12 @@ enum measuring_state {
     MES_READY
 };
 
+enum encoder_state {
+    ENS_CW,
+    ENS_CCW,
+    ENS_NO_CHANGE
+};
+
 /*******************************************************************************
  *                                                                             *
  * Display menu definition                                                     *
@@ -194,6 +202,9 @@ enum menu_state {
 time_t              time_now;
 unsigned long       time_now_ms;
 LiquidCrystal       lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+Encoder             encoder(ENC_B, ENC_A);
+int                 enc; 
+int                 enc_last;
 int                 main_menu_position;
 char                *menu_titles[] = {
     NULL,
@@ -255,6 +266,7 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution);
 void setup() {
     motor_init();
     pump_init();
+    encoder_init();
     lcd.begin(8, 2);
     lcd.setCursor(0,0);
     lcd.print("Sterownik");
@@ -372,6 +384,24 @@ void loop() {
     // the furnace) we resume operation
     if (t_max > pump_start_temperature) {
         pump_start();
+    }
+
+/*******************************************************************************
+ *                                                                             *
+ * Menu control                                                                *
+ *                                                                             *
+ ******************************************************************************/
+    switch (encoder_status()) {
+        case ENS_CW:
+            if (main_menu_position < (m_main_menu_last_pos - 1))
+                main_menu_position++;
+            break;
+        case ENS_CCW:
+            if (main_menu_position > (m_main_menu_first_pos + 1))
+                main_menu_position--;
+            break;
+        default:
+            break;
     }
 
 /*******************************************************************************
@@ -554,4 +584,31 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
         one_wire_bus.write_bytes(&scrachpad[2], 3);
     }
     one_wire_bus.reset(); 
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * AVT1722 board "AVTduino miniLCD" encoder                                    *
+ *                                                                             *
+ ******************************************************************************/
+void encoder_init(void) {
+    pinMode(ENC_A, INPUT);
+    pinMode(ENC_B, INPUT);
+    pinMode(ENC_BUTTON, INPUT);
+
+    enc = 0;
+    enc_last = enc;
+}
+
+uint8_t encoder_status(void) {
+    enc = encoder.read();
+    if ((enc/4) > (enc_last/4)) {
+        enc_last = enc;
+        return ENS_CW;
+    }
+    if ((enc/4) < (enc_last/4)) {
+        enc_last = enc;
+        return ENS_CCW;
+    }
+    return ENS_NO_CHANGE;
 }
