@@ -84,6 +84,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define DEF_TEMP_TO_HALF        608     // 38 °C
 #define DEF_TEMP_TO_START_PUMP  640     // 40 °C
 #define DEF_TEMP_TO_STOP_PUMP   480     // 30 °C
+#define DEF_MENU_CLICK_TIMEOUT  500     // 2 clicks per second
 
 /*******************************************************************************
  *                                                                             *
@@ -151,6 +152,13 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define OW_READ_SCRATCHPAD      0xBE
 #define OW_WRITE_SCRATCHPAD     0x4E
 
+/*******************************************************************************
+ *                                                                             *
+ * LCD special characters                                                      *
+ *                                                                             *
+ ******************************************************************************/
+#define RETURN_SIGN 126
+
 
 enum motor_state {
     MOS_STOPPED,
@@ -195,7 +203,19 @@ enum menu_state {
     m_motor_state,                      // state of the motor, on/off
     m_pump_state,                       // central heating pump status, on/off
     m_settings,                         // open the settings menu
-    m_main_menu_last_pos
+    m_main_menu_last_pos,
+
+    m_settings_menu_first_pos,
+    m_settings_time_to_run,
+    m_settings_time_to_stop,
+    m_settings_temperature,
+    m_settings_pump_start_temperature,
+    m_settings_pump_stop_temperature,
+    m_settings_search_sensors,
+    m_settings_one_wire_devices_count,
+    m_settings_reset_to_factory,
+    m_settings_return,
+    m_settings_menu_last_pos
 };
 
 
@@ -206,6 +226,8 @@ Encoder             encoder(ENC_B, ENC_A);
 int                 enc; 
 int                 enc_last;
 int                 main_menu_position;
+int                 settings_menu_position;
+boolean             in_settings_menu;
 char                *menu_titles[] = {
     NULL,
     "start za",
@@ -214,8 +236,22 @@ char                *menu_titles[] = {
     "silnik",
     "pompa",
     "ustawienia",
+    NULL,
+
+    NULL,
+    "start za",
+    "stop za",
+    NULL,
+    "pom start",
+    "pom stop",
+    "szukaj",
+    "ilosc czujnikow",
+    "reset",
+    "powrot",
     NULL
 };
+time_t              menu_last_click;
+time_t              menu_click_timeout = DEF_MENU_CLICK_TIMEOUT;
 
 /*******************************************************************************
  *                                                                             *
@@ -278,6 +314,9 @@ void setup() {
     measuring_current_state = MES_IDLE;
 
     main_menu_position = m_time_to_run;
+    settings_menu_position  = m_settings_time_to_run;
+    in_settings_menu = false;
+    menu_last_click = 0;
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -391,14 +430,50 @@ void loop() {
  * Menu control                                                                *
  *                                                                             *
  ******************************************************************************/
+    if ((!digitalRead(ENC_BUTTON))
+        && ((time_now_ms - menu_last_click) > menu_click_timeout)) {
+        menu_last_click = time_now_ms;
+        if (!in_settings_menu) {
+            switch (main_menu_position) {
+                case m_settings:
+                    in_settings_menu = true;
+                    settings_menu_position = m_settings_time_to_run;
+                    break;
+                default:
+                    break;
+            }
+        }
+        else {
+            switch (settings_menu_position) {
+                case m_settings_return:
+                    in_settings_menu = false;
+                    main_menu_position = m_time_to_run;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
     switch (encoder_status()) {
         case ENS_CW:
-            if (main_menu_position < (m_main_menu_last_pos - 1))
-                main_menu_position++;
+            if (!in_settings_menu) {
+                if (main_menu_position < (m_main_menu_last_pos - 1))
+                    main_menu_position++;
+            }
+            else {
+                if (settings_menu_position < (m_settings_menu_last_pos - 1))
+                    settings_menu_position++;
+            }
             break;
         case ENS_CCW:
-            if (main_menu_position > (m_main_menu_first_pos + 1))
-                main_menu_position--;
+            if (!in_settings_menu) {
+                if (main_menu_position > (m_main_menu_first_pos + 1))
+                    main_menu_position--;
+            }
+            else {
+                if (settings_menu_position > (m_settings_menu_first_pos + 1))
+                    settings_menu_position--;
+            }
             break;
         default:
             break;
@@ -411,20 +486,53 @@ void loop() {
  ******************************************************************************/
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print(menu_titles[main_menu_position]);
-    switch (main_menu_position) {
-        case m_time_to_run:
-            break;
-        case m_time_to_stop:
-            break;
-        case m_temperature:
-            break;
-        case m_motor_state:
-            break;
-        case m_pump_state:
-            break;
-        default:
-            break;
+    if (!in_settings_menu) {
+        lcd.print(menu_titles[main_menu_position]);
+    }
+    else {
+        lcd.print(menu_titles[settings_menu_position]);
+    }
+    if (!in_settings_menu) {
+        switch (main_menu_position) {
+            case m_time_to_run:
+                break;
+            case m_time_to_stop:
+                break;
+            case m_temperature:
+                break;
+            case m_motor_state:
+                break;
+            case m_pump_state:
+                break;
+            default:
+                break;
+        }
+    }
+    else {
+        switch (settings_menu_position) {
+            case m_settings_time_to_run:
+                break;
+            case m_settings_time_to_stop:
+                break;
+            case m_settings_temperature:
+                break;
+            case m_settings_pump_start_temperature:
+                break;
+            case m_settings_pump_stop_temperature:
+                break;
+            case m_settings_search_sensors:
+                break;
+            case m_settings_one_wire_devices_count:
+                break;
+            case m_settings_reset_to_factory:
+                break;
+            case m_settings_return:
+                lcd.setCursor(5,1);
+                lcd.write(RETURN_SIGN);
+                break;
+            default:
+                break;
+        }
     }
 
     wdt_reset();
