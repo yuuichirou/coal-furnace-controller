@@ -227,6 +227,7 @@ int                 enc;
 int                 enc_last;
 int                 main_menu_position;
 int                 settings_menu_position;
+int                 sensor_menu_position;
 boolean             in_settings_menu;
 char                *menu_titles[] = {
     NULL,
@@ -249,6 +250,9 @@ char                *menu_titles[] = {
     "reset",
     "powrot",
     NULL
+};
+char                *sensor_names[] = {
+    "temp wyj", "temp wej", "temp dom"
 };
 time_t              menu_last_click;
 time_t              menu_click_timeout = DEF_MENU_CLICK_TIMEOUT;
@@ -315,6 +319,7 @@ void setup() {
 
     main_menu_position = m_time_to_run;
     settings_menu_position  = m_settings_time_to_run;
+    sensor_menu_position = 0;
     in_settings_menu = false;
     menu_last_click = 0;
 
@@ -438,6 +443,7 @@ void loop() {
                 case m_settings:
                     in_settings_menu = true;
                     settings_menu_position = m_settings_time_to_run;
+                    sensor_menu_position = 0;
                     break;
                 default:
                     break;
@@ -448,6 +454,7 @@ void loop() {
                 case m_settings_return:
                     in_settings_menu = false;
                     main_menu_position = m_time_to_run;
+                    sensor_menu_position = 0;
                     break;
                 default:
                     break;
@@ -457,21 +464,45 @@ void loop() {
     switch (encoder_status()) {
         case ENS_CW:
             if (!in_settings_menu) {
-                if (main_menu_position < (m_main_menu_last_pos - 1))
+                if (main_menu_position == m_temperature) {
+                    if (sensor_menu_position == (SENSOR_NUMBER - 1))
+                        main_menu_position++;
+                    else
+                        sensor_menu_position++;
+                }
+                else if (main_menu_position < (m_main_menu_last_pos - 1))
                     main_menu_position++;
             }
             else {
-                if (settings_menu_position < (m_settings_menu_last_pos - 1))
+                if (settings_menu_position == m_settings_temperature) {
+                    if (sensor_menu_position == (SENSOR_NUMBER - 1))
+                        settings_menu_position++;
+                    else
+                        sensor_menu_position++;
+                }
+                else if (settings_menu_position < (m_settings_menu_last_pos - 1))
                     settings_menu_position++;
             }
             break;
         case ENS_CCW:
             if (!in_settings_menu) {
-                if (main_menu_position > (m_main_menu_first_pos + 1))
+                if (main_menu_position == m_temperature) {
+                    if (sensor_menu_position == 0)
+                        main_menu_position--;
+                    else
+                        sensor_menu_position--;
+                }
+                else if (main_menu_position > (m_main_menu_first_pos + 1))
                     main_menu_position--;
             }
             else {
-                if (settings_menu_position > (m_settings_menu_first_pos + 1))
+                if (settings_menu_position == m_settings_temperature) {
+                    if (sensor_menu_position == 0)
+                        settings_menu_position--;
+                    else
+                        sensor_menu_position--;
+                }
+                else if (settings_menu_position > (m_settings_menu_first_pos + 1))
                     settings_menu_position--;
             }
             break;
@@ -486,7 +517,10 @@ void loop() {
  ******************************************************************************/
     lcd.clear();
     lcd.setCursor(0, 0);
-    if (!in_settings_menu) {
+    if (main_menu_position == m_temperature
+        || settings_menu_position == m_settings_temperature)
+      lcd.print(sensor_names[sensor_menu_position]);
+    else if (!in_settings_menu) {
         lcd.print(menu_titles[main_menu_position]);
     }
     else {
