@@ -526,11 +526,50 @@ void loop() {
     else {
         lcd.print(menu_titles[settings_menu_position]);
     }
+    lcd.setCursor(0, 1);
     if (!in_settings_menu) {
+        time_t time_left;
+        int min, sec;
+        char text[9];
+
         switch (main_menu_position) {
             case m_time_to_run:
-                break;
             case m_time_to_stop:
+                text[0] = '-';
+                text[1] = '-';
+                text[2] = 'm';
+                text[3] = '-';
+                text[4] = '-';
+                text[5] = 's';
+                text[6] = 0;
+
+                if (motor_current_state != MOS_NOT_ACTIVE) {
+                    if (motor_current_state == MOS_STOPPED) {
+                        if (main_menu_position == m_time_to_run)
+                            time_left = remaining_time_to_start(time_now);
+                        else
+                            time_left = 0;
+                    }
+                    else {
+                        if (main_menu_position == m_time_to_run)
+                            time_left = 0;
+                        else
+                            time_left = remaining_time_to_stop(time_now);
+                    }
+
+                    min = time_left / 60;
+                    sec = time_left % 60;
+                    if (min < 10) {
+                        text[0] = ' ';
+                    }
+                    else {
+                        text[0] = '0' + min / 10 % 10;
+                    }
+                    text[1] = '0' + min % 10;
+                    text[3] = '0' + sec / 10;
+                    text[4] = '0' + sec % 10;
+                }
+                lcd.print(text);
                 break;
             case m_temperature:
                 break;
@@ -539,6 +578,7 @@ void loop() {
             case m_pump_state:
                 break;
             default:
+                lcd.print(" ");
                 break;
         }
     }
@@ -565,6 +605,7 @@ void loop() {
                 lcd.write(RETURN_SIGN);
                 break;
             default:
+                lcd.print(" ");
                 break;
         }
     }
@@ -607,6 +648,25 @@ void motor_control(enum motor_command command) {
     default:
         break;
     }
+}
+
+time_t remaining_time_to_start(time_t time) {
+    int temperature = 0;
+    byte i;
+
+    for(i = 0; i < SENSOR_NUMBER; i++)
+        temperature = max(temperature, temperatures[i]);
+    // mix more frequently at low temperatures
+    if (temperature < temperature_to_half_time) {
+        return motor_start_time + time_to_run/2 - time;
+    }
+    else {
+        return motor_start_time + time_to_run - time;
+    }
+}
+
+time_t remaining_time_to_stop(time_t time) {
+    return motor_start_time + time_to_stop - time;
 }
 
 boolean time_to_run_has_already_passed(time_t time) {
