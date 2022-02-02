@@ -584,8 +584,28 @@ void loop() {
                 lcd.print("C");
                 break;
             case m_motor_state:
+                switch (motor_current_state) {
+                    case MOS_STOPPED:
+                        lcd.print("stop");
+                        break;
+                    case MOS_RUNNING_FORWARD:
+                        lcd.print("do przodu");
+                        break;
+                    case MOS_RUNNING_BACKWARD:
+                        lcd.print("do tylu");
+                        break;
+                    case MOS_NOT_ACTIVE:
+                        lcd.print("nieaktywny");
+                        break;
+                    default:
+                        break;
+                }
                 break;
             case m_pump_state:
+                if (pump_current_state == PUS_RUNNING)
+                    lcd.print("wl.");
+                else
+                    lcd.print("wyl.");
                 break;
             default:
                 lcd.print(" ");
