@@ -61,7 +61,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
  ******************************************************************************/
 #define SENSOR_NUMBER       3
 // DS18B20 resolution 12bit (0.0625), 11bit (0.125), 10bit (0.250), 9bit (0.5)
-#define SENSOR_RESOLUTION   10
+#define SENSOR_RESOLUTION   9
 #define CONVERT_INTERVAL    CONVERT_INTERVAL_9BIT
 #define TEMP_INTEGER_DIGITS    2
 #define TEMP_FRACTIONAL_DIGITS 1
