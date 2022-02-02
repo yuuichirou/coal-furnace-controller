@@ -63,6 +63,8 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 // DS18B20 resolution 12bit (0.0625), 11bit (0.125), 10bit (0.250), 9bit (0.5)
 #define SENSOR_RESOLUTION   10
 #define CONVERT_INTERVAL    CONVERT_INTERVAL_9BIT
+#define TEMP_INTEGER_DIGITS    2
+#define TEMP_FRACTIONAL_DIGITS 1
 
 /*******************************************************************************
  *                                                                             *
@@ -151,6 +153,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define OW_CONVERT_T            0x44
 #define OW_READ_SCRATCHPAD      0xBE
 #define OW_WRITE_SCRATCHPAD     0x4E
+#define DS18B20_FRACTIONAL_BITS 4
 
 /*******************************************************************************
  *                                                                             *
@@ -158,6 +161,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
  *                                                                             *
  ******************************************************************************/
 #define RETURN_SIGN 126
+#define DEGREE_SIGN 223
 
 
 enum motor_state {
@@ -572,6 +576,12 @@ void loop() {
                 lcd.print(text);
                 break;
             case m_temperature:
+                fixedp_to_str(temperatures[sensor_menu_position], text,
+                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                    DS18B20_FRACTIONAL_BITS);
+                lcd.print(text);
+                lcd.write(DEGREE_SIGN);
+                lcd.print("C");
                 break;
             case m_motor_state:
                 break;
@@ -786,6 +796,62 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
         one_wire_bus.write_bytes(&scrachpad[2], 3);
     }
     one_wire_bus.reset(); 
+}
+
+void fixedp_to_str(int value, char *buffer, int buffer_size,
+    byte integer_digits, byte fractional_digits, byte point_pos) {
+    int integer_part, fractional_part;
+    bool negative;
+    byte i;
+    char digits[5];
+
+    if ((integer_digits+fractional_digits+3) > buffer_size)
+        return;
+
+    negative = value < 0;
+    if (negative) value = -value;
+
+    if (integer_digits > 5) integer_digits = 5;
+    if (fractional_digits > 5) fractional_digits = 5;
+
+    integer_part = value >> point_pos;
+    fractional_part = value & ~(0xFFFF << point_pos);
+    // (.) >> 0  0000 0000   0xFF << 0  1111 1111   ~(.)  0000 0000
+    // (.) >> 1  0000 000.   0xFF << 1  1111 1110   ~(.)  0000 0001
+    // (.) >> 2  0000 00..   0xFF << 2  1111 1100   ~(.)  0000 0011
+    // (.) >> 3  0000 0...   0xFF << 3  1111 1000   ~(.)  0000 0111
+    // (.) >> 4  0000 ....   0xFF << 4  1111 0000   ~(.)  0000 1111
+    //...
+
+    digits[4] = (integer_part % 10) + '0';
+    integer_part = integer_part / 10;
+    for (i = 1; i < integer_digits; i++) {
+        if (integer_part > 0) {
+            digits[4-i] = (integer_part % 10) + '0';
+            integer_part = integer_part / 10;
+        }
+        else
+            digits[4-i] = ' ';
+    }
+
+    buffer[0] = negative ? '-': '+';
+
+    for(i = 0; i < integer_digits; i++) {
+        buffer[1+i] = digits[(5-integer_digits)+i];
+    }
+
+    buffer[1+integer_digits] = '.';
+
+    for (i = 0; i < fractional_digits; i++) {
+        digits[i] = (((fractional_part * 10) / (1 << point_pos)) % 10) + '0';
+        fractional_part = fractional_part * 10;
+    }
+
+    for(i = 0; i < fractional_digits; i++) {
+        buffer[1+integer_digits+1+i] = digits[i];
+    }
+
+    buffer[1+integer_digits+1+fractional_digits] = 0;
 }
 
 /*******************************************************************************
