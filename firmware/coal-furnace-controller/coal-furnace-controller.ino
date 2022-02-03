@@ -251,7 +251,7 @@ char                *menu_titles[] = {
     "pom stop",
     "szukaj",
     "ilosc czujnikow",
-    "reset",
+    "ustawienia",
     "powrot",
     NULL
 };
@@ -613,22 +613,61 @@ void loop() {
         }
     }
     else {
+        char text[9];
+        
         switch (settings_menu_position) {
             case m_settings_time_to_run:
+                _00ita(time_to_run/60, text);
+                text[2] = ' ';
+                text[3] = 'm';
+                text[4] = 'i';
+                text[5] = 'n';
+                text[6] = 0;
+                lcd.print(text);
                 break;
             case m_settings_time_to_stop:
+                _00ita(time_to_stop, text);
+                text[2] = ' ';
+                text[3] = 's';
+                text[4] = 'e';
+                text[5] = 'c';
+                text[6] = 0;
+                lcd.print(text);
                 break;
             case m_settings_temperature:
+                fixedp_to_str(temperatures[sensor_menu_position], text,
+                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                    DS18B20_FRACTIONAL_BITS);
+                lcd.print(text);
+                lcd.write(DEGREE_SIGN);
+                lcd.print("C");
                 break;
             case m_settings_pump_start_temperature:
+                fixedp_to_str(pump_start_temperature, text,
+                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                    DS18B20_FRACTIONAL_BITS);
+                lcd.print(text);
+                lcd.write(DEGREE_SIGN);
+                lcd.print("C");
                 break;
             case m_settings_pump_stop_temperature:
+                fixedp_to_str(pump_stop_temperature, text,
+                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                    DS18B20_FRACTIONAL_BITS);
+                lcd.print(text);
+                lcd.write(DEGREE_SIGN);
+                lcd.print("C");
                 break;
             case m_settings_search_sensors:
+                lcd.print("czujnikow");
                 break;
             case m_settings_one_wire_devices_count:
+                _00ita(one_wire_devices_count, text);
+                text[2] = 0;
+                lcd.print(text);
                 break;
             case m_settings_reset_to_factory:
+                lcd.print("fabryczne");
                 break;
             case m_settings_return:
                 lcd.setCursor(5,1);
@@ -642,6 +681,17 @@ void loop() {
 
     wdt_reset();
     delay(50);
+}
+
+void _00ita(int val, char *dest) {
+    if (val < 10) {
+        *dest = '0';
+        *(dest+1) = '0' + val;
+    }
+    else {
+        *dest = '0' + (val / 10) % 10;
+        *(dest+1) = '0' + val % 10;
+    }
 }
 
 /*******************************************************************************
