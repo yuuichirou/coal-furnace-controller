@@ -266,6 +266,7 @@ time_t              menu_click_timeout = DEF_MENU_CLICK_TIMEOUT;
 boolean             editing_mode;
 time_t              editing_time_value;
 int                 editing_temperature;
+byte                editing_sensor_index;
 
 /*******************************************************************************
  *                                                                             *
@@ -304,6 +305,8 @@ unsigned long           measure_start_time;
 byte                    sensor_addresses[SENSOR_NUMBER][8];
 int                     temperatures[SENSOR_NUMBER];
 
+byte                    (*one_wire_addresses)[8];
+int                     *one_wire_temperatures;
 
 byte scan_one_wire_bus(byte (*addresses)[8], byte array_size);
 void set_resolution(byte (*addresses)[8], byte array_size, byte resolution);
@@ -368,6 +371,9 @@ void loop() {
             case MES_READY:
                 read_temperatures(temperatures,
                   min(SENSOR_NUMBER, one_wire_devices_count));
+                if (editing_mode && one_wire_temperatures != NULL)
+                    read_temperatures(one_wire_temperatures,
+                      one_wire_devices_count);
                 break;
             default:
                 break;
@@ -463,6 +469,7 @@ void loop() {
         else {
             if (settings_menu_position == m_settings_time_to_run ||
                 settings_menu_position == m_settings_time_to_stop ||
+                settings_menu_position == m_settings_temperature ||
                 settings_menu_position == m_settings_pump_start_temperature ||
                 settings_menu_position == m_settings_pump_stop_temperature) {
                 if (editing_mode) {
@@ -488,6 +495,41 @@ void loop() {
                             editing_time_value = time_to_run;
                         else
                             editing_time_value = time_to_stop;
+                    }
+                    break;
+                case m_settings_temperature:
+                    if (editing_mode) {
+                        editing_mode = false;
+                        memcpy(sensor_addresses[sensor_menu_position],
+                          one_wire_addresses[editing_sensor_index],
+                          sizeof(sensor_addresses[0]));
+                        free(one_wire_addresses);
+                        one_wire_addresses = NULL;
+                        free(one_wire_temperatures);
+                        one_wire_temperatures = NULL;
+                    }
+                    else {
+                        editing_mode = true;
+                        count_one_wire_devices();
+                        if (one_wire_devices_count > 0) {
+                            one_wire_addresses = (byte (*)[8]) malloc (
+                                one_wire_devices_count
+                                * sizeof(one_wire_addresses[0]));
+                            one_wire_temperatures = (int*) malloc(
+                                one_wire_devices_count * sizeof(int));
+                            scan_one_wire_bus(one_wire_addresses,
+                                one_wire_devices_count);
+                            editing_sensor_index = 0;
+                            for (byte i = 0; i < one_wire_devices_count; i++) {
+                                if (memcmp(
+                                    sensor_addresses[sensor_menu_position],
+                                    one_wire_addresses[i],
+                                    sizeof(sensor_addresses[0])) == 0) {
+                                    editing_sensor_index = i;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     break;
                 case m_settings_pump_start_temperature:
@@ -530,6 +572,10 @@ void loop() {
                     if (editing_time_value < TIME_TO_STOP_MAX_SETTING)
                         editing_time_value += 1;  // 1 second resolution
                 }
+                else if (settings_menu_position == m_settings_temperature) {
+                    if (editing_sensor_index < one_wire_devices_count - 1)
+                        editing_sensor_index += 1;
+                }
                 else if (settings_menu_position ==
                     m_settings_pump_start_temperature
                     || settings_menu_position ==
@@ -570,6 +616,10 @@ void loop() {
                 else if (settings_menu_position == m_settings_time_to_stop) {
                     if (editing_time_value > 0)
                         editing_time_value -= 1;  // 1 second resolution
+                }
+                else if (settings_menu_position == m_settings_temperature) {
+                    if (editing_sensor_index > 0)
+                        editing_sensor_index -= 1;
                 }
                 else if (settings_menu_position ==
                     m_settings_pump_start_temperature
@@ -743,12 +793,20 @@ void loop() {
                 }
                 break;
             case m_settings_temperature:
-                fixedp_to_str(temperatures[sensor_menu_position], text,
-                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
-                    DS18B20_FRACTIONAL_BITS);
+                if (editing_mode)
+                    fixedp_to_str(one_wire_temperatures[editing_sensor_index],
+                        text, sizeof(text), TEMP_INTEGER_DIGITS,
+                        TEMP_FRACTIONAL_DIGITS, DS18B20_FRACTIONAL_BITS);
+                else
+                    fixedp_to_str(temperatures[sensor_menu_position],
+                        text, sizeof(text), TEMP_INTEGER_DIGITS,
+                        TEMP_FRACTIONAL_DIGITS, DS18B20_FRACTIONAL_BITS);
                 lcd.print(text);
                 lcd.write(DEGREE_SIGN);
                 lcd.print("C");
+                if (editing_mode) {
+                    lcd.setCursor(3, 1);
+                }
                 break;
             case m_settings_pump_start_temperature:
                 if (editing_mode) {
@@ -963,7 +1021,10 @@ void read_temperatures(int *temperatures, byte array_size) {
 
     for (i = 0; i < array_size; i++) {
         one_wire_bus.reset();
-        one_wire_bus.select(sensor_addresses[i]);
+        if (editing_mode && one_wire_addresses != NULL)
+            one_wire_bus.select(one_wire_addresses[i]);
+        else
+            one_wire_bus.select(sensor_addresses[i]);
         one_wire_bus.write(OW_READ_SCRATCHPAD);
         for (j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
