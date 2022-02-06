@@ -65,6 +65,8 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define CONVERT_INTERVAL    CONVERT_INTERVAL_9BIT
 #define TEMP_INTEGER_DIGITS    2
 #define TEMP_FRACTIONAL_DIGITS 1
+#define TIME_TO_RUN_MAX_SETTING     5400    // 1,5 hour
+#define TIME_TO_STOP_MAX_SETTING    90      // 1,5 minute
 
 /*******************************************************************************
  *                                                                             *
@@ -260,6 +262,8 @@ char                *sensor_names[] = {
 };
 time_t              menu_last_click;
 time_t              menu_click_timeout = DEF_MENU_CLICK_TIMEOUT;
+boolean             editing_mode;
+time_t              editing_time_value;
 
 /*******************************************************************************
  *                                                                             *
@@ -326,6 +330,7 @@ void setup() {
     sensor_menu_position = 0;
     in_settings_menu = false;
     menu_last_click = 0;
+    editing_mode = false;
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -454,7 +459,33 @@ void loop() {
             }
         }
         else {
+            if (settings_menu_position == m_settings_time_to_run ||
+                settings_menu_position == m_settings_time_to_stop) {
+                if (editing_mode) {
+                    lcd.noBlink();
+                }
+                else {
+                    lcd.blink();
+                }
+            }
             switch (settings_menu_position) {
+                case m_settings_time_to_run:
+                case m_settings_time_to_stop:
+                    if (editing_mode) {
+                        editing_mode = false;
+                        if (settings_menu_position == m_settings_time_to_run)
+                            time_to_run = editing_time_value;
+                        else
+                            time_to_stop = editing_time_value;
+                    }
+                    else {
+                        editing_mode = true;
+                        if (settings_menu_position == m_settings_time_to_run)
+                            editing_time_value = time_to_run;
+                        else
+                            editing_time_value = time_to_stop;
+                    }
+                    break;
                 case m_settings_return:
                     in_settings_menu = false;
                     main_menu_position = m_time_to_run;
@@ -467,6 +498,17 @@ void loop() {
     }
     switch (encoder_status()) {
         case ENS_CW:
+            if (editing_mode) {
+                if (settings_menu_position == m_settings_time_to_run) {
+                    if (editing_time_value < TIME_TO_RUN_MAX_SETTING)
+                        editing_time_value += 60;  // 1 minute resolution
+                }
+                else if (settings_menu_position == m_settings_time_to_stop) {
+                    if (editing_time_value < TIME_TO_STOP_MAX_SETTING)
+                        editing_time_value += 1;  // 1 second resolution
+                }
+            }
+            else
             if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
                     if (sensor_menu_position == (SENSOR_NUMBER - 1))
@@ -489,6 +531,17 @@ void loop() {
             }
             break;
         case ENS_CCW:
+            if (editing_mode) {
+                if (settings_menu_position == m_settings_time_to_run) {
+                    if (editing_time_value > 0)
+                        editing_time_value -= 60;  // 1 minute resolution
+                }
+                else if (settings_menu_position == m_settings_time_to_stop) {
+                    if (editing_time_value > 0)
+                        editing_time_value -= 1;  // 1 second resolution
+                }
+            }
+            else
             if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
                     if (sensor_menu_position == 0)
@@ -617,22 +670,38 @@ void loop() {
         
         switch (settings_menu_position) {
             case m_settings_time_to_run:
-                _00ita(time_to_run/60, text);
+                if (editing_mode) {
+                    _00ita(editing_time_value/60, text);
+                }
+                else {
+                    _00ita(time_to_run/60, text);
+                }
                 text[2] = ' ';
                 text[3] = 'm';
                 text[4] = 'i';
                 text[5] = 'n';
                 text[6] = 0;
                 lcd.print(text);
+                if (editing_mode) {
+                    lcd.setCursor(1, 1);
+                }
                 break;
             case m_settings_time_to_stop:
-                _00ita(time_to_stop, text);
+                if (editing_mode) {
+                    _00ita(editing_time_value, text);
+                }
+                else {
+                    _00ita(time_to_stop, text);
+                }
                 text[2] = ' ';
                 text[3] = 's';
                 text[4] = 'e';
                 text[5] = 'c';
                 text[6] = 0;
                 lcd.print(text);
+                if (editing_mode) {
+                    lcd.setCursor(1, 1);
+                }
                 break;
             case m_settings_temperature:
                 fixedp_to_str(temperatures[sensor_menu_position], text,
