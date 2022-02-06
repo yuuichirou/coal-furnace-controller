@@ -67,6 +67,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define TEMP_FRACTIONAL_DIGITS 1
 #define TIME_TO_RUN_MAX_SETTING     5400    // 1,5 hour
 #define TIME_TO_STOP_MAX_SETTING    90      // 1,5 minute
+#define TEMPERATURE_MAX_SETTING     1520    // 95 °C
 
 /*******************************************************************************
  *                                                                             *
@@ -264,6 +265,7 @@ time_t              menu_last_click;
 time_t              menu_click_timeout = DEF_MENU_CLICK_TIMEOUT;
 boolean             editing_mode;
 time_t              editing_time_value;
+int                 editing_temperature;
 
 /*******************************************************************************
  *                                                                             *
@@ -460,7 +462,9 @@ void loop() {
         }
         else {
             if (settings_menu_position == m_settings_time_to_run ||
-                settings_menu_position == m_settings_time_to_stop) {
+                settings_menu_position == m_settings_time_to_stop ||
+                settings_menu_position == m_settings_pump_start_temperature ||
+                settings_menu_position == m_settings_pump_stop_temperature) {
                 if (editing_mode) {
                     lcd.noBlink();
                 }
@@ -486,6 +490,25 @@ void loop() {
                             editing_time_value = time_to_stop;
                     }
                     break;
+                case m_settings_pump_start_temperature:
+                case m_settings_pump_stop_temperature:
+                    if (editing_mode) {
+                        editing_mode = false;
+                        if (settings_menu_position ==
+                             m_settings_pump_start_temperature)
+                            pump_start_temperature = editing_temperature;
+                        else
+                            pump_stop_temperature = editing_temperature;
+                    }
+                    else {
+                        editing_mode = true;
+                        if (settings_menu_position ==
+                             m_settings_pump_start_temperature)
+                            editing_temperature = pump_start_temperature;
+                        else
+                            editing_temperature = pump_stop_temperature;
+                    }
+                    break;
                 case m_settings_return:
                     in_settings_menu = false;
                     main_menu_position = m_time_to_run;
@@ -506,6 +529,14 @@ void loop() {
                 else if (settings_menu_position == m_settings_time_to_stop) {
                     if (editing_time_value < TIME_TO_STOP_MAX_SETTING)
                         editing_time_value += 1;  // 1 second resolution
+                }
+                else if (settings_menu_position ==
+                    m_settings_pump_start_temperature
+                    || settings_menu_position ==
+                    m_settings_pump_stop_temperature) {
+                    if (editing_temperature < TEMPERATURE_MAX_SETTING)
+                        editing_temperature += 1 << DS18B20_FRACTIONAL_BITS;
+                                               // 1 degree resolution
                 }
             }
             else
@@ -539,6 +570,14 @@ void loop() {
                 else if (settings_menu_position == m_settings_time_to_stop) {
                     if (editing_time_value > 0)
                         editing_time_value -= 1;  // 1 second resolution
+                }
+                else if (settings_menu_position ==
+                    m_settings_pump_start_temperature
+                    || settings_menu_position ==
+                    m_settings_pump_stop_temperature) {
+                    if (editing_temperature > 0)
+                        editing_temperature -= 1 << DS18B20_FRACTIONAL_BITS;
+                                               // 1 degree resolution
                 }
             }
             else
@@ -712,20 +751,40 @@ void loop() {
                 lcd.print("C");
                 break;
             case m_settings_pump_start_temperature:
-                fixedp_to_str(pump_start_temperature, text,
-                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
-                    DS18B20_FRACTIONAL_BITS);
+                if (editing_mode) {
+                    fixedp_to_str(editing_temperature, text, sizeof(text),
+                        TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                        DS18B20_FRACTIONAL_BITS);
+                }
+                else {
+                    fixedp_to_str(pump_start_temperature, text, sizeof(text),
+                        TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                        DS18B20_FRACTIONAL_BITS);
+                }
                 lcd.print(text);
                 lcd.write(DEGREE_SIGN);
                 lcd.print("C");
+                if (editing_mode) {
+                    lcd.setCursor(2, 1);
+                }
                 break;
             case m_settings_pump_stop_temperature:
-                fixedp_to_str(pump_stop_temperature, text,
-                    sizeof(text), TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
-                    DS18B20_FRACTIONAL_BITS);
+                if (editing_mode) {
+                    fixedp_to_str(editing_temperature, text, sizeof(text),
+                        TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                        DS18B20_FRACTIONAL_BITS);
+                }
+                else {
+                    fixedp_to_str(pump_stop_temperature, text, sizeof(text),
+                        TEMP_INTEGER_DIGITS, TEMP_FRACTIONAL_DIGITS,
+                        DS18B20_FRACTIONAL_BITS);
+                }
                 lcd.print(text);
                 lcd.write(DEGREE_SIGN);
                 lcd.print("C");
+                if (editing_mode) {
+                    lcd.setCursor(2, 1);
+                }
                 break;
             case m_settings_search_sensors:
                 lcd.print("czujnikow");
