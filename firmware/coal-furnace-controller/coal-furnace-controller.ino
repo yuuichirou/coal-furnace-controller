@@ -47,6 +47,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 // Arduino Standard Libraries
 #include <LiquidCrystal.h>
 // AVR Standard C Libraries
+#include <avr/eeprom.h>
 #include <avr/wdt.h>
 // Other Libraries
 #include <Encoder.h>
@@ -165,6 +166,19 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
  ******************************************************************************/
 #define RETURN_SIGN 126
 #define DEGREE_SIGN 223
+
+/*******************************************************************************
+ *                                                                             *
+ * Storing operating parameters in non-volatile memory (EEPROM)                *
+ *                                                                             *
+ ******************************************************************************/
+// first 4 bytes empty
+#define TIME_TO_RUN_EEPROM_ADDRESS              4    // 4 B
+#define TIME_TO_STOP_EEPROM_ADDRESS             8    // 4 B
+#define SENSOR_ADDRESSES_EEPROM_ADDRESS         12   // SENSOR_NUMBER * 8 B
+#define PUMP_START_TEMPERATURE_EEPROM_ADDRESS   12 + SENSOR_NUMBER * 8  // 2 B
+#define PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS    14 + SENSOR_NUMBER * 8  // 2 B
+#define NEXT_EEPROM_ADDRESS                     16 + SENSOR_NUMBER * 8 //40 //?B
 
 
 enum motor_state {
@@ -337,9 +351,21 @@ void setup() {
     menu_last_click = 0;
     editing_mode = false;
 
+    // set state from saved params
+    eeprom_read_block(&time_to_run, TIME_TO_RUN_EEPROM_ADDRESS, sizeof(time_t));
+    eeprom_read_block(&time_to_stop, TIME_TO_STOP_EEPROM_ADDRESS,
+        sizeof(time_t));
+    for(byte i = 0; i < SENSOR_NUMBER; i++)
+        eeprom_read_block(sensor_addresses[i],
+            SENSOR_ADDRESSES_EEPROM_ADDRESS + i * 8,
+            sizeof(sensor_addresses[0]));
+    eeprom_read_block(&pump_start_temperature,
+        PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+    eeprom_read_block(&pump_stop_temperature,
+        PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
-        scan_one_wire_bus(&sensor_addresses[0], SENSOR_NUMBER);
         set_resolution(&sensor_addresses[0],
             min(SENSOR_NUMBER, one_wire_devices_count), SENSOR_RESOLUTION);
     }
@@ -484,10 +510,16 @@ void loop() {
                 case m_settings_time_to_stop:
                     if (editing_mode) {
                         editing_mode = false;
-                        if (settings_menu_position == m_settings_time_to_run)
+                        if (settings_menu_position == m_settings_time_to_run) {
                             time_to_run = editing_time_value;
-                        else
+                            eeprom_update_block(&time_to_run,
+                                TIME_TO_RUN_EEPROM_ADDRESS, sizeof(time_t));
+                        }
+                        else {
                             time_to_stop = editing_time_value;
+                            eeprom_update_block(&time_to_stop,
+                                TIME_TO_STOP_EEPROM_ADDRESS, sizeof(time_t));
+                        }
                     }
                     else {
                         editing_mode = true;
@@ -503,6 +535,11 @@ void loop() {
                         memcpy(sensor_addresses[sensor_menu_position],
                           one_wire_addresses[editing_sensor_index],
                           sizeof(sensor_addresses[0]));
+                        eeprom_update_block(
+                            sensor_addresses[sensor_menu_position],
+                            SENSOR_ADDRESSES_EEPROM_ADDRESS +
+                            sensor_menu_position * 8,
+                            sizeof(sensor_addresses[0]));
                         free(one_wire_addresses);
                         one_wire_addresses = NULL;
                         free(one_wire_temperatures);
@@ -537,10 +574,18 @@ void loop() {
                     if (editing_mode) {
                         editing_mode = false;
                         if (settings_menu_position ==
-                             m_settings_pump_start_temperature)
+                            m_settings_pump_start_temperature) {
                             pump_start_temperature = editing_temperature;
-                        else
+                            eeprom_update_block(&pump_start_temperature,
+                                PUMP_START_TEMPERATURE_EEPROM_ADDRESS,
+                                sizeof(int));
+                        }
+                        else {
                             pump_stop_temperature = editing_temperature;
+                            eeprom_update_block(&pump_stop_temperature,
+                                PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS,
+                                sizeof(int));
+                        }
                     }
                     else {
                         editing_mode = true;
