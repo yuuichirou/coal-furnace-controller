@@ -40,7 +40,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
              |            [ ] [ ] [ ]              |
              |  UNO_R3    GND MOSI 5V  ____________/
               \_______________________/
-      
+
       http://busyducks.com/ascii-art-arduinos
 */
 
@@ -60,12 +60,12 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
  * Configuration                                                               *
  *                                                                             *
  ******************************************************************************/
-#define SENSOR_NUMBER       3
+#define SENSOR_NUMBER           3
 // DS18B20 resolution 12bit (0.0625), 11bit (0.125), 10bit (0.250), 9bit (0.5)
-#define SENSOR_RESOLUTION   9
-#define CONVERT_INTERVAL    CONVERT_INTERVAL_9BIT
-#define TEMP_INTEGER_DIGITS    2
-#define TEMP_FRACTIONAL_DIGITS 1
+#define SENSOR_RESOLUTION       9
+#define CONVERT_INTERVAL        CONVERT_INTERVAL_9BIT
+#define TEMP_INTEGER_DIGITS     2
+#define TEMP_FRACTIONAL_DIGITS  1
 #define TIME_TO_RUN_MAX_SETTING     5400    // 1,5 hour
 #define TIME_TO_STOP_MAX_SETTING    90      // 1,5 minute
 #define TEMPERATURE_MAX_SETTING     1520    // 95 °C
@@ -244,7 +244,7 @@ time_t              time_now;
 unsigned long       time_now_ms;
 LiquidCrystal       lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 Encoder             encoder(ENC_B, ENC_A);
-int                 enc; 
+int                 enc;
 int                 enc_last;
 int                 main_menu_position;
 int                 settings_menu_position;
@@ -335,17 +335,17 @@ void setup() {
     pump_init();
     encoder_init();
     lcd.begin(8, 2);
-    lcd.setCursor(0,0);
+    lcd.setCursor(0, 0);
     lcd.print("Sterownik");
-    lcd.setCursor(0,1);
+    lcd.setCursor(0, 1);
     lcd.print("v0.2");
 
     motor_current_state = MOS_STOPPED;
-    pump_current_state  = PUS_STOPPED;
+    pump_current_state = PUS_STOPPED;
     measuring_current_state = MES_IDLE;
 
     main_menu_position = m_time_to_run;
-    settings_menu_position  = m_settings_time_to_run;
+    settings_menu_position = m_settings_time_to_run;
     sensor_menu_position = 0;
     in_settings_menu = false;
     menu_last_click = 0;
@@ -369,6 +369,7 @@ void setup() {
         set_resolution(&sensor_addresses[0],
             min(SENSOR_NUMBER, one_wire_devices_count), SENSOR_RESOLUTION);
     }
+
     delay(1000);
     wdt_enable(WDTO_2S);
 }
@@ -399,7 +400,7 @@ void loop() {
                   min(SENSOR_NUMBER, one_wire_devices_count));
                 if (editing_mode && one_wire_temperatures != NULL)
                     read_temperatures(one_wire_temperatures,
-                      one_wire_devices_count);
+                        one_wire_devices_count);
                 break;
             default:
                 break;
@@ -493,11 +494,11 @@ void loop() {
             }
         }
         else {
-            if (settings_menu_position == m_settings_time_to_run ||
-                settings_menu_position == m_settings_time_to_stop ||
-                settings_menu_position == m_settings_temperature ||
-                settings_menu_position == m_settings_pump_start_temperature ||
-                settings_menu_position == m_settings_pump_stop_temperature) {
+            if (settings_menu_position == m_settings_time_to_run
+                || settings_menu_position == m_settings_time_to_stop
+                || settings_menu_position == m_settings_temperature
+                || settings_menu_position == m_settings_pump_start_temperature
+                || settings_menu_position == m_settings_pump_stop_temperature) {
                 if (editing_mode) {
                     lcd.noBlink();
                 }
@@ -533,8 +534,8 @@ void loop() {
                     if (editing_mode) {
                         editing_mode = false;
                         memcpy(sensor_addresses[sensor_menu_position],
-                          one_wire_addresses[editing_sensor_index],
-                          sizeof(sensor_addresses[0]));
+                            one_wire_addresses[editing_sensor_index],
+                            sizeof(sensor_addresses[0]));
                         eeprom_update_block(
                             sensor_addresses[sensor_menu_position],
                             SENSOR_ADDRESSES_EEPROM_ADDRESS +
@@ -549,7 +550,7 @@ void loop() {
                         editing_mode = true;
                         count_one_wire_devices();
                         if (one_wire_devices_count > 0) {
-                            one_wire_addresses = (byte (*)[8]) malloc (
+                            one_wire_addresses = (byte (*)[8]) malloc(
                                 one_wire_devices_count
                                 * sizeof(one_wire_addresses[0]));
                             one_wire_temperatures = (int*) malloc(
@@ -557,7 +558,7 @@ void loop() {
                             scan_one_wire_bus(one_wire_addresses,
                                 one_wire_devices_count);
                             editing_sensor_index = 0;
-                            for (byte i = 0; i < one_wire_devices_count; i++) {
+                            for(byte i = 0; i < one_wire_devices_count; i++) {
                                 if (memcmp(
                                     sensor_addresses[sensor_menu_position],
                                     one_wire_addresses[i],
@@ -642,8 +643,7 @@ void loop() {
                                                // 1 degree resolution
                 }
             }
-            else
-            if (!in_settings_menu) {
+            else if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
                     if (sensor_menu_position == (SENSOR_NUMBER - 1))
                         main_menu_position++;
@@ -660,7 +660,8 @@ void loop() {
                     else
                         sensor_menu_position++;
                 }
-                else if (settings_menu_position < (m_settings_menu_last_pos - 1))
+                else if (settings_menu_position <
+                    (m_settings_menu_last_pos - 1))
                     settings_menu_position++;
             }
             break;
@@ -687,8 +688,7 @@ void loop() {
                                                // 1 degree resolution
                 }
             }
-            else
-            if (!in_settings_menu) {
+            else if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
                     if (sensor_menu_position == 0)
                         main_menu_position--;
@@ -705,7 +705,8 @@ void loop() {
                     else
                         sensor_menu_position--;
                 }
-                else if (settings_menu_position > (m_settings_menu_first_pos + 1))
+                else if (settings_menu_position >
+                    (m_settings_menu_first_pos + 1))
                     settings_menu_position--;
             }
             break;
@@ -722,7 +723,7 @@ void loop() {
     lcd.setCursor(0, 0);
     if (main_menu_position == m_temperature
         || settings_menu_position == m_settings_temperature)
-      lcd.print(sensor_names[sensor_menu_position]);
+        lcd.print(sensor_names[sensor_menu_position]);
     else if (!in_settings_menu) {
         lcd.print(menu_titles[main_menu_position]);
     }
@@ -813,14 +814,14 @@ void loop() {
     }
     else {
         char text[9];
-        
+
         switch (settings_menu_position) {
             case m_settings_time_to_run:
                 if (editing_mode) {
-                    _00ita(editing_time_value/60, text);
+                    _00ita(editing_time_value / 60, text);
                 }
                 else {
-                    _00ita(time_to_run/60, text);
+                    _00ita(time_to_run / 60, text);
                 }
                 text[2] = ' ';
                 text[3] = 'm';
@@ -913,7 +914,7 @@ void loop() {
                 lcd.print("fabryczne");
                 break;
             case m_settings_return:
-                lcd.setCursor(5,1);
+                lcd.setCursor(5, 1);
                 lcd.write(RETURN_SIGN);
                 break;
             default:
@@ -929,11 +930,11 @@ void loop() {
 void _00ita(int val, char *dest) {
     if (val < 10) {
         *dest = '0';
-        *(dest+1) = '0' + val;
+        *(dest + 1) = '0' + val;
     }
     else {
         *dest = '0' + (val / 10) % 10;
-        *(dest+1) = '0' + val % 10;
+        *(dest + 1) = '0' + val % 10;
     }
 }
 
@@ -981,7 +982,7 @@ time_t remaining_time_to_start(time_t time) {
         temperature = max(temperature, temperatures[i]);
     // mix more frequently at low temperatures
     if (temperature < temperature_to_half_time) {
-        return motor_start_time + time_to_run/2 - time;
+        return motor_start_time + time_to_run / 2 - time;
     }
     else {
         return motor_start_time + time_to_run - time;
@@ -999,7 +1000,7 @@ boolean time_to_run_has_already_passed(time_t time) {
     for(i = 0; i < SENSOR_NUMBER; i++)
         temperature = max(temperature, temperatures[i]);
     if (temperature < temperature_to_half_time) {
-        return (time - motor_start_time) >= (time_to_run/2);
+        return (time - motor_start_time) >= (time_to_run / 2);
     }
     else {
         return (time - motor_start_time) >= time_to_run;
@@ -1076,14 +1077,14 @@ void read_temperatures(int *temperatures, byte array_size) {
     byte scrachpad[9];
     byte i, j;
 
-    for (i = 0; i < array_size; i++) {
+    for(i = 0; i < array_size; i++) {
         one_wire_bus.reset();
         if (editing_mode && one_wire_addresses != NULL)
             one_wire_bus.select(one_wire_addresses[i]);
         else
             one_wire_bus.select(sensor_addresses[i]);
         one_wire_bus.write(OW_READ_SCRATCHPAD);
-        for (j = 0; j < 9; j++) {
+        for(j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
         }
         temperatures[i] = (scrachpad[1] << 8) | scrachpad[0];
@@ -1095,11 +1096,11 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
     byte scrachpad[9];
     byte i, j;
 
-    for (i = 0; i < array_size; i++) {
+    for(i = 0; i < array_size; i++) {
         one_wire_bus.reset();
         one_wire_bus.select(addresses[i]);
         one_wire_bus.write(OW_READ_SCRATCHPAD);
-        for (j = 0; j < 9; j++) {
+        for(j = 0; j < 9; j++) {
             scrachpad[j] = one_wire_bus.read();
         }
         if (resolution ==  9) scrachpad[4] = 0x1F;  // & 0x9F | 0x00
@@ -1111,7 +1112,7 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution) {
         one_wire_bus.write(OW_WRITE_SCRATCHPAD);
         one_wire_bus.write_bytes(&scrachpad[2], 3);
     }
-    one_wire_bus.reset(); 
+    one_wire_bus.reset();
 }
 
 void fixedp_to_str(int value, char *buffer, int buffer_size,
@@ -1121,7 +1122,7 @@ void fixedp_to_str(int value, char *buffer, int buffer_size,
     byte i;
     char digits[5];
 
-    if ((integer_digits+fractional_digits+3) > buffer_size)
+    if ((integer_digits + fractional_digits + 3) > buffer_size)
         return;
 
     negative = value < 0;
@@ -1141,33 +1142,33 @@ void fixedp_to_str(int value, char *buffer, int buffer_size,
 
     digits[4] = (integer_part % 10) + '0';
     integer_part = integer_part / 10;
-    for (i = 1; i < integer_digits; i++) {
+    for(i = 1; i < integer_digits; i++) {
         if (integer_part > 0) {
-            digits[4-i] = (integer_part % 10) + '0';
+            digits[4 - i] = (integer_part % 10) + '0';
             integer_part = integer_part / 10;
         }
         else
-            digits[4-i] = ' ';
+            digits[4 - i] = ' ';
     }
 
     buffer[0] = negative ? '-': '+';
 
     for(i = 0; i < integer_digits; i++) {
-        buffer[1+i] = digits[(5-integer_digits)+i];
+        buffer[1 + i] = digits[5 - integer_digits + i];
     }
 
     buffer[1+integer_digits] = '.';
 
-    for (i = 0; i < fractional_digits; i++) {
+    for(i = 0; i < fractional_digits; i++) {
         digits[i] = (((fractional_part * 10) / (1 << point_pos)) % 10) + '0';
         fractional_part = fractional_part * 10;
     }
 
     for(i = 0; i < fractional_digits; i++) {
-        buffer[1+integer_digits+1+i] = digits[i];
+        buffer[1 + integer_digits + 1 + i] = digits[i];
     }
 
-    buffer[1+integer_digits+1+fractional_digits] = 0;
+    buffer[1 + integer_digits + 1 + fractional_digits] = 0;
 }
 
 /*******************************************************************************
