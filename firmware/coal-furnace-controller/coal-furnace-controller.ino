@@ -596,6 +596,18 @@ void loop() {
                             editing_temperature = pump_stop_temperature;
                     }
                     break;
+                case m_settings_search_sensors:
+                    count_one_wire_devices();
+                    break;
+                case m_settings_reset_to_factory:
+                    time_to_run = DEF_TIME_TO_RUN;
+                    time_to_stop = DEF_TIME_TO_STOP;
+                    pump_start_temperature = DEF_TEMP_TO_START_PUMP;
+                    pump_stop_temperature = DEF_TEMP_TO_STOP_PUMP;
+                    lcd.setCursor(0, 1);
+                    lcd.print("przywrocone");
+                    delay(100);
+                    break;
                 case m_settings_return:
                     in_settings_menu = false;
                     main_menu_position = m_time_to_run;
