@@ -347,7 +347,7 @@ void setup() {
     lcd.setCursor(0, 0);
     lcd.print("Sterownik");
     lcd.setCursor(0, 1);
-    lcd.print("v0.2");
+    lcd.print("v0.3");
 
     motor_current_state = MOS_STOPPED;
     pump_current_state = PUS_STOPPED;
@@ -641,7 +641,7 @@ void loop() {
                     pump_stop_temperature = DEF_TEMP_TO_STOP_PUMP;
                     lcd.setCursor(0, 1);
                     lcd.print("przywrocone");
-                    delay(100);
+                    delay(250);
                     break;
                 case m_settings_return:
                     in_settings_menu = false;
