@@ -77,6 +77,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
  ******************************************************************************/
 #define MOTOR_CON1          RELAY1_PIN
 #define MOTOR_CON2          RELAY4_PIN
+#define MOTOR_PARKING       3
 
 #define PUMP_CON            RELAY2_PIN
 
@@ -91,6 +92,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define DEF_TEMP_TO_START_PUMP  640     // 40 °C
 #define DEF_TEMP_TO_STOP_PUMP   480     // 30 °C
 #define DEF_MENU_CLICK_TIMEOUT  500     // 2 clicks per second
+#define DEF_MOTOR_PARKING       false
 
 /*******************************************************************************
  *                                                                             *
@@ -178,13 +180,15 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define SENSOR_ADDRESSES_EEPROM_ADDRESS         12   // SENSOR_NUMBER * 8 B
 #define PUMP_START_TEMPERATURE_EEPROM_ADDRESS   12 + SENSOR_NUMBER * 8  // 2 B
 #define PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS    14 + SENSOR_NUMBER * 8  // 2 B
-#define NEXT_EEPROM_ADDRESS                     16 + SENSOR_NUMBER * 8 //40 //?B
+#define ENABLE_MOTOR_PARKING_EEPROM_ADDRESS     16 + SENSOR_NUMBER * 8  // 1 B
+#define NEXT_EEPROM_ADDRESS                     17 + SENSOR_NUMBER * 8 //41 //?B
 
 
 enum motor_state {
     MOS_STOPPED,
     MOS_RUNNING_FORWARD,
     MOS_RUNNING_BACKWARD,
+    MOS_PARKING,
     MOS_NOT_ACTIVE
 };
 
@@ -196,6 +200,7 @@ enum pump_state {
 enum motor_command {
     FORWARD,
     BACKWARD,
+    PARK,
     STOP
 };
 
@@ -232,6 +237,7 @@ enum menu_state {
     m_settings_temperature,
     m_settings_pump_start_temperature,
     m_settings_pump_stop_temperature,
+    m_settings_motor_parking,
     m_settings_one_wire_devices_count,
     m_settings_store_to_eeprom,
     m_settings_reset_to_factory,
@@ -266,6 +272,7 @@ char                *menu_titles[] = {
     NULL,
     "pom start",
     "pom stop",
+    "parkowanie",    
     "ilosc czujnikow",
     "zapisz",
     "ustawienia",
@@ -281,6 +288,8 @@ boolean             editing_mode;
 time_t              editing_time_value;
 int                 editing_temperature;
 byte                editing_sensor_index;
+boolean             editing_parking;
+boolean             enable_motor_parking = DEF_MOTOR_PARKING;
 
 /*******************************************************************************
  *                                                                             *
@@ -363,6 +372,8 @@ void setup() {
         PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
     eeprom_read_block(&pump_stop_temperature,
         PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+    eeprom_read_block(&enable_motor_parking, ENABLE_MOTOR_PARKING_EEPROM_ADDRESS,
+        sizeof(byte));
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -423,11 +434,19 @@ void loop() {
             break;
         case MOS_RUNNING_FORWARD:
             if (time_to_stop_has_already_passed(time_now)) {
-                motor_control(STOP);
+                if (enable_motor_parking)
+                    motor_control(PARK);
+                else
+                    motor_control(STOP);
             }
             break;
         case MOS_RUNNING_BACKWARD:
             if (time_to_stop_has_already_passed(now())) {
+                motor_control(STOP);
+            }
+            break;
+        case MOS_PARKING:
+            if (digitalRead(MOTOR_PARKING)) {
                 motor_control(STOP);
             }
             break;
@@ -582,6 +601,16 @@ void loop() {
                             editing_temperature = pump_stop_temperature;
                     }
                     break;
+                case m_settings_motor_parking:
+                    if (editing_mode) {
+                        editing_mode = false;
+                        enable_motor_parking = editing_parking;
+                    }
+                    else {
+                        editing_mode = true;
+                        editing_parking = enable_motor_parking;
+                    }
+                    break;
                 case m_settings_one_wire_devices_count:
                     count_one_wire_devices();
                     break;
@@ -599,6 +628,8 @@ void loop() {
                         PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
                     eeprom_update_block(&pump_stop_temperature,
                         PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+                    eeprom_update_block(&enable_motor_parking,
+                        ENABLE_MOTOR_PARKING_EEPROM_ADDRESS, sizeof(byte));
                     lcd.setCursor(0, 1);
                     lcd.print("zapisane");
                     delay(250);
@@ -645,6 +676,8 @@ void loop() {
                         editing_temperature += 1 << DS18B20_FRACTIONAL_BITS;
                                                // 1 degree resolution
                 }
+                else if (settings_menu_position == m_settings_motor_parking)
+                    editing_parking = !editing_parking;
             }
             else if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
@@ -690,6 +723,8 @@ void loop() {
                         editing_temperature -= 1 << DS18B20_FRACTIONAL_BITS;
                                                // 1 degree resolution
                 }
+                else if (settings_menu_position == m_settings_motor_parking)
+                    editing_parking = !editing_parking;                
             }
             else if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
@@ -751,7 +786,8 @@ void loop() {
                 text[6] = 0;
 
                 if (motor_current_state != MOS_NOT_ACTIVE) {
-                    if (motor_current_state == MOS_STOPPED) {
+                    if (motor_current_state == MOS_STOPPED
+                        || motor_current_state == MOS_PARKING) {
                         if (main_menu_position == m_time_to_run)
                             time_left = remaining_time_to_start(time_now);
                         else
@@ -796,6 +832,9 @@ void loop() {
                         break;
                     case MOS_RUNNING_BACKWARD:
                         lcd.print("do tylu");
+                        break;
+                    case MOS_PARKING:
+                        lcd.print("zatrzymywanie");
                         break;
                     case MOS_NOT_ACTIVE:
                         lcd.print("nieaktywny");
@@ -905,6 +944,18 @@ void loop() {
                     lcd.setCursor(2, 1);
                 }
                 break;
+            case m_settings_motor_parking:
+                if (editing_mode)
+                    if (editing_parking)
+                        lcd.print("tak*nie ");
+                    else
+                        lcd.print("tak nie*");
+                else
+                    if (enable_motor_parking)
+                        lcd.print("tak");
+                    else
+                        lcd.print("    nie");
+                break;
             case m_settings_one_wire_devices_count:
                 _00ita(one_wire_devices_count, text);
                 text[2] = 0;
@@ -948,6 +999,7 @@ void motor_init(void) {
     digitalWrite(MOTOR_CON1, HIGH);
     pinMode(MOTOR_CON2, OUTPUT);
     digitalWrite(MOTOR_CON2, HIGH);
+    pinMode(MOTOR_PARKING, INPUT_PULLUP);
 }
 
 void motor_control(enum motor_command command) {
@@ -963,6 +1015,9 @@ void motor_control(enum motor_command command) {
         digitalWrite(MOTOR_CON2, HIGH);
         motor_current_state = MOS_RUNNING_BACKWARD;
         motor_start_time = time_now;
+        break;
+    case PARK:
+        motor_current_state = MOS_PARKING;
         break;
     case STOP:
         digitalWrite(MOTOR_CON1, HIGH);
