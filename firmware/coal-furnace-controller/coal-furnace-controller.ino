@@ -621,7 +621,7 @@ void loop() {
                         TIME_TO_STOP_EEPROM_ADDRESS, sizeof(time_t));
                     for(int i = 0; i < SENSOR_NUMBER; i++)
                         eeprom_update_block(
-                            sensor_addresses[sensor_menu_position],
+                            sensor_addresses[i],
                             SENSOR_ADDRESSES_EEPROM_ADDRESS + i * 8,
                             sizeof(sensor_addresses[0]));
                     eeprom_update_block(&pump_start_temperature,
