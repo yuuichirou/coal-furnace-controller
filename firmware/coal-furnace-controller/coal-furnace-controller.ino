@@ -234,6 +234,7 @@ enum menu_state {
     m_settings_pump_stop_temperature,
     m_settings_search_sensors,
     m_settings_one_wire_devices_count,
+    m_settings_store_to_eeprom,
     m_settings_reset_to_factory,
     m_settings_return,
     m_settings_menu_last_pos
@@ -268,6 +269,7 @@ char                *menu_titles[] = {
     "pom stop",
     "szukaj",
     "ilosc czujnikow",
+    "zapisz",
     "ustawienia",
     "powrot",
     NULL
@@ -513,13 +515,9 @@ void loop() {
                         editing_mode = false;
                         if (settings_menu_position == m_settings_time_to_run) {
                             time_to_run = editing_time_value;
-                            eeprom_update_block(&time_to_run,
-                                TIME_TO_RUN_EEPROM_ADDRESS, sizeof(time_t));
                         }
                         else {
                             time_to_stop = editing_time_value;
-                            eeprom_update_block(&time_to_stop,
-                                TIME_TO_STOP_EEPROM_ADDRESS, sizeof(time_t));
                         }
                     }
                     else {
@@ -535,11 +533,6 @@ void loop() {
                         editing_mode = false;
                         memcpy(sensor_addresses[sensor_menu_position],
                             one_wire_addresses[editing_sensor_index],
-                            sizeof(sensor_addresses[0]));
-                        eeprom_update_block(
-                            sensor_addresses[sensor_menu_position],
-                            SENSOR_ADDRESSES_EEPROM_ADDRESS +
-                            sensor_menu_position * 8,
                             sizeof(sensor_addresses[0]));
                         free(one_wire_addresses);
                         one_wire_addresses = NULL;
@@ -577,15 +570,9 @@ void loop() {
                         if (settings_menu_position ==
                             m_settings_pump_start_temperature) {
                             pump_start_temperature = editing_temperature;
-                            eeprom_update_block(&pump_start_temperature,
-                                PUMP_START_TEMPERATURE_EEPROM_ADDRESS,
-                                sizeof(int));
                         }
                         else {
                             pump_stop_temperature = editing_temperature;
-                            eeprom_update_block(&pump_stop_temperature,
-                                PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS,
-                                sizeof(int));
                         }
                     }
                     else {
@@ -600,6 +587,24 @@ void loop() {
                 case m_settings_search_sensors:
                     count_one_wire_devices();
                     break;
+                case m_settings_store_to_eeprom:
+                    eeprom_update_block(&time_to_run,
+                        TIME_TO_RUN_EEPROM_ADDRESS, sizeof(time_t));
+                    eeprom_update_block(&time_to_stop,
+                        TIME_TO_STOP_EEPROM_ADDRESS, sizeof(time_t));
+                    for(int i = 0; i < SENSOR_NUMBER; i++)
+                        eeprom_update_block(
+                            sensor_addresses[sensor_menu_position],
+                            SENSOR_ADDRESSES_EEPROM_ADDRESS + i * 8,
+                            sizeof(sensor_addresses[0]));
+                    eeprom_update_block(&pump_start_temperature,
+                        PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+                    eeprom_update_block(&pump_stop_temperature,
+                        PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
+                    lcd.setCursor(0, 1);
+                    lcd.print("zapisane");
+                    delay(250);
+                    break;                    
                 case m_settings_reset_to_factory:
                     time_to_run = DEF_TIME_TO_RUN;
                     time_to_stop = DEF_TIME_TO_STOP;
