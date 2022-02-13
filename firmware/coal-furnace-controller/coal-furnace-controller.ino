@@ -232,7 +232,6 @@ enum menu_state {
     m_settings_temperature,
     m_settings_pump_start_temperature,
     m_settings_pump_stop_temperature,
-    m_settings_search_sensors,
     m_settings_one_wire_devices_count,
     m_settings_store_to_eeprom,
     m_settings_reset_to_factory,
@@ -267,7 +266,6 @@ char                *menu_titles[] = {
     NULL,
     "pom start",
     "pom stop",
-    "szukaj",
     "ilosc czujnikow",
     "zapisz",
     "ustawienia",
@@ -584,7 +582,7 @@ void loop() {
                             editing_temperature = pump_stop_temperature;
                     }
                     break;
-                case m_settings_search_sensors:
+                case m_settings_one_wire_devices_count:
                     count_one_wire_devices();
                     break;
                 case m_settings_store_to_eeprom:
@@ -906,9 +904,6 @@ void loop() {
                 if (editing_mode) {
                     lcd.setCursor(2, 1);
                 }
-                break;
-            case m_settings_search_sensors:
-                lcd.print("czujnikow");
                 break;
             case m_settings_one_wire_devices_count:
                 _00ita(one_wire_devices_count, text);
