@@ -69,6 +69,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define TIME_TO_RUN_MAX_SETTING     5400    // 1,5 hour
 #define TIME_TO_STOP_MAX_SETTING    90      // 1,5 minute
 #define TEMPERATURE_MAX_SETTING     1520    // 95 °C
+#define ENCODER_PULSES_PER_MENU     8   // DEF_ENC_PULSES_PER_ROT
 
 /*******************************************************************************
  *                                                                             *
@@ -93,6 +94,7 @@ PK2       C5 | [ ]A5/SCL  [ ] [ ] [ ]      RX<0[ ] | D0      ENC PUSH BUTTON
 #define DEF_TEMP_TO_STOP_PUMP   480     // 30 °C
 #define DEF_MENU_CLICK_TIMEOUT  500     // 2 clicks per second
 #define DEF_MOTOR_PARKING       false
+#define DEF_ENC_PULSES_PER_ROT  4
 
 /*******************************************************************************
  *                                                                             *
@@ -1242,11 +1244,13 @@ void encoder_init(void) {
 
 uint8_t encoder_status(void) {
     enc = encoder.read();
-    if ((enc/4) > (enc_last/4)) {
+    if ((enc / ENCODER_PULSES_PER_MENU)
+        > (enc_last / ENCODER_PULSES_PER_MENU)) {
         enc_last = enc;
         return ENS_CW;
     }
-    if ((enc/4) < (enc_last/4)) {
+    if ((enc / ENCODER_PULSES_PER_MENU)
+        < (enc_last / ENCODER_PULSES_PER_MENU)) {
         enc_last = enc;
         return ENS_CCW;
     }
