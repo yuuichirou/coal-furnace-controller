@@ -291,7 +291,6 @@ time_t              editing_time_value;
 int                 editing_temperature;
 byte                editing_sensor_index;
 boolean             editing_parking;
-boolean             enable_motor_parking = DEF_MOTOR_PARKING;
 
 /*******************************************************************************
  *                                                                             *
@@ -307,6 +306,7 @@ time_t              time_to_stop = DEF_TIME_TO_STOP;
 enum motor_state    motor_current_state;
 // temperature below which we reduce the waiting time for motor activation
 int                 temperature_to_half_time = DEF_TEMP_TO_HALF;
+boolean             enable_motor_parking = DEF_MOTOR_PARKING;
 
 /*******************************************************************************
  *                                                                             *
@@ -374,8 +374,8 @@ void setup() {
         PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
     eeprom_read_block(&pump_stop_temperature,
         PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
-    eeprom_read_block(&enable_motor_parking, ENABLE_MOTOR_PARKING_EEPROM_ADDRESS,
-        sizeof(byte));
+    eeprom_read_block(&enable_motor_parking,
+        ENABLE_MOTOR_PARKING_EEPROM_ADDRESS, sizeof(byte));
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -726,7 +726,7 @@ void loop() {
                                                // 1 degree resolution
                 }
                 else if (settings_menu_position == m_settings_motor_parking)
-                    editing_parking = !editing_parking;                
+                    editing_parking = !editing_parking;
             }
             else if (!in_settings_menu) {
                 if (main_menu_position == m_temperature) {
@@ -1256,3 +1256,4 @@ uint8_t encoder_status(void) {
     }
     return ENS_NO_CHANGE;
 }
+
