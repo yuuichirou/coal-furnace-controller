@@ -1,6 +1,6 @@
 /*
  Controller for ash removal from coal furnace and central heating pump
- version 0.3
+ version 0.4
 
  Building blocks:
  - AVT5272 Arduino Duemilanove clone
@@ -349,7 +349,7 @@ void setup() {
     lcd.setCursor(0, 0);
     lcd.print("Sterownik");
     lcd.setCursor(0, 1);
-    lcd.print("v0.3");
+    lcd.print("v0.4");
 
     motor_current_state = MOS_STOPPED;
     pump_current_state = PUS_STOPPED;
