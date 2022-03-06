@@ -342,6 +342,8 @@ void set_resolution(byte (*addresses)[8], byte array_size, byte resolution);
  *                                                                             *
  ******************************************************************************/
 void setup() {
+    byte flag;
+
     motor_init();
     pump_init();
     encoder_init();
@@ -349,7 +351,7 @@ void setup() {
     lcd.setCursor(0, 0);
     lcd.print("Sterownik");
     lcd.setCursor(0, 1);
-    lcd.print("v0.3");
+    lcd.print("v0.3.1");
 
     motor_current_state = MOS_STOPPED;
     pump_current_state = PUS_STOPPED;
@@ -374,8 +376,9 @@ void setup() {
         PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
     eeprom_read_block(&pump_stop_temperature,
         PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
-    eeprom_read_block(&enable_motor_parking,
+    eeprom_read_block(&flag,
         ENABLE_MOTOR_PARKING_EEPROM_ADDRESS, sizeof(byte));
+    enable_motor_parking = flag > 0;
 
     count_one_wire_devices();
     if (one_wire_devices_count > 0) {
@@ -617,6 +620,7 @@ void loop() {
                     count_one_wire_devices();
                     break;
                 case m_settings_store_to_eeprom:
+                    byte flag;
                     eeprom_update_block(&time_to_run,
                         TIME_TO_RUN_EEPROM_ADDRESS, sizeof(time_t));
                     eeprom_update_block(&time_to_stop,
@@ -630,7 +634,8 @@ void loop() {
                         PUMP_START_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
                     eeprom_update_block(&pump_stop_temperature,
                         PUMP_STOP_TEMPERATURE_EEPROM_ADDRESS, sizeof(int));
-                    eeprom_update_block(&enable_motor_parking,
+                    flag = enable_motor_parking ? 1 : 0;
+                    eeprom_update_block(&flag,
                         ENABLE_MOTOR_PARKING_EEPROM_ADDRESS, sizeof(byte));
                     lcd.setCursor(0, 1);
                     lcd.print("zapisane");

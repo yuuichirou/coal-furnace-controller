@@ -9,6 +9,9 @@ an Arduino based controller, a motor for car wipers.
 
 ## Version History
 
+* 0.3.1
+    * Fixed storing and loading of a boolean type variable from non-volatile memory.
+
 * 0.3
     * Added support for the hardware parking mechanism of the wiper motor.
     * Parameter storing in non-volatile memory has been separated from parameter setting.
