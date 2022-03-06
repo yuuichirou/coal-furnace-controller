@@ -351,7 +351,7 @@ void setup() {
     lcd.setCursor(0, 0);
     lcd.print("Sterownik");
     lcd.setCursor(0, 1);
-    lcd.print("v0.3");
+    lcd.print("v0.3.1");
 
     motor_current_state = MOS_STOPPED;
     pump_current_state = PUS_STOPPED;
